@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -31,7 +32,7 @@ class MainActivity : AppCompatActivity() {
 
         //Codigo a partir de aqui VVV
 
-        val nameUser = "Usuario";
+         val nameUser = "Usuario";
 
         val passwordUser = "1234";
 
@@ -39,8 +40,25 @@ class MainActivity : AppCompatActivity() {
 
         binding.buttonAccess.setOnClickListener {
 
-            startActivity(Intent(this, UserWelcome::class.java)) }
+            val user = binding.userName.text.toString().trim()
+            val passwd = binding.passwordSplash.text.toString().trim()
 
+            if (user.isEmpty() || passwd.isEmpty()){
+
+                Toast.makeText(this, "Rellena todos los datos para continuar", Toast.LENGTH_SHORT).show()
+
+            }else if(user == nameUser && passwd == passwordUser){
+
+               startActivity(Intent(this, UserWelcome::class.java))
+
+
+            }else{
+
+                startActivity(Intent(this, UserFailed::class.java))
+
+            }
+
+        }
         }
 
     }
