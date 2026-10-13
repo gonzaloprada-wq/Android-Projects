@@ -13,11 +13,16 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.primeraapp26.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    val TAG="ciclovida"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("::tag","Estoy en onCreate")
+        Log.d(TAG, "A: onCreate creado")
         enableEdgeToEdge()
         val binding = ActivityMainBinding.inflate(layoutInflater)
+
+        val activityContext = this
+        val appContext = applicationContext
+
 
 
         setContentView(binding.root)
@@ -30,8 +35,6 @@ class MainActivity : AppCompatActivity() {
             //CAMBIAR TEXTO BOTON
             //val boton = findViewById<Button>(R.id.miBoton)
             //boton.text="Pulsame chacho!"
-
-        binding.miBoton.text="pulsame chacho v2"
 
         //Imprime un pop up
         binding.miBoton.setOnClickListener {
@@ -63,12 +66,47 @@ class MainActivity : AppCompatActivity() {
             startActivity(intento)
         }
 
+       binding.buttonDialogoSistema?.setOnClickListener{
+
+           requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 1001)
+
+       }
+        Log.d("DEMO2", "Activity: $activityContext")
+        Log.d("DEMO2", "App: $appContext")
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("DEMO", "A: onStart llamado")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "A: onResume llamado - ¡La Activity es visible y activa!")
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("DEMO", "A: onPause llamado - Otra Activity toma el foco")
+
     }
 
     override fun onStop(){
         super.onStop()
-        Log.d("::tag","Estoy en onStop")
-        setContentView(R.layout.stop)
+        Log.d(TAG, "A: onStop llamado - La Activity ya no es visible")
+    }
+
+    override fun onRestart(){
+        super.onRestart()
+        Log.d(TAG, "A: onRestart llamado - Volviendo de estar 'stopped'")
+
+    }
+
+    override fun onDestroy(){
+        super.onDestroy()
+        Log.d(TAG, "A: onDestroy llamado - La Activity está siendo destruida")
+
     }
 
 }
