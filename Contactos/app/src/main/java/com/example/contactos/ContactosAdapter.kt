@@ -1,10 +1,9 @@
 package com.example.contactos
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.contactos.databinding.ItemContactoBinding
 
 class ContactosAdapter(private val contactos: List<Contacto>) :
     RecyclerView.Adapter<ContactosAdapter.ViewHolder>() {
@@ -13,23 +12,29 @@ class ContactosAdapter(private val contactos: List<Contacto>) :
         parent: ViewGroup,
         viewType: Int
     ): ViewHolder {
-        val itemView = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_contacto, parent, false)
-        return ViewHolder(itemView)
-
+        val binding = ItemContactoBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        TODO("Not yet implemented")
+        val contacto = contactos[position]
+        holder.bind(contacto)
     }
 
     override fun getItemCount(): Int {
         return contactos.size
     }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-        val tvNombre: TextView = itemView.findViewById(R.id.tvNombre)
-        val tvTelefono: TextView = itemView.findViewById(R.id.tvTelefono)
+    class ViewHolder(private val binding: ItemContactoBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(contacto: Contacto) {
+            binding.tvNombre.text = contacto.nombre
+            binding.tvTelefono.text = contacto.telefono
+            // AQUÍ SE MUESTRA LA IMAGEN: Modifica o pasa el recurso drawable que desees mostrar (ej. R.drawable.tu_imagen)
+            binding.imageView.setImageResource(contacto.imagen)
+        }
     }
 }
