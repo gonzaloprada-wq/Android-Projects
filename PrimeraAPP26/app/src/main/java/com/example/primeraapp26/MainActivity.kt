@@ -68,7 +68,6 @@ class MainActivity : AppCompatActivity() {
 
        binding.buttonDialogoSistema?.setOnClickListener{
 
-           requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 1001)
 
        }
         Log.d("DEMO2", "Activity: $activityContext")
