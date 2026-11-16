@@ -1,27 +1,47 @@
 package com.example.boletin1unidad2.views
 
 import android.widget.Toast
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -35,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -138,13 +159,9 @@ fun ProfileHeaderPreview() {
 
 /*Ejercicio 4*/
 @Composable
-fun UsernameInput(modifier: Modifier = Modifier) {
-    var username by rememberSaveable { mutableStateOf("") }
-
+fun UsernameInput(username: String, onUsernameChanged: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        TextField(value = username, onValueChange = { nuevoUser ->
-            username = nuevoUser
-        }, label = { Text("Ingresa tu nombre de usuario") })
+        TextField(value = username, onValueChange = onUsernameChanged, label = { Text("Ingresa tu nombre de usuario") })
 
         Text(
             text = "Nombre de usuario: $username",
@@ -156,23 +173,21 @@ fun UsernameInput(modifier: Modifier = Modifier) {
 
 /*Ejercicio 5*/
 @Composable
-fun RegisterForm(modifier: Modifier = Modifier) {
+fun RegisterForm(
+    email: String,
+    onEmailChanged: (String) -> Unit,
+    password: String,
+    onPasswordChanged: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
-        var email by rememberSaveable  { mutableStateOf("") }
-
         OutlinedTextField(
-            value = email, onValueChange = { nuevoEmail ->
-            email = nuevoEmail
-            }, label = { Text("Ingresa tu email") }, modifier = Modifier.padding(bottom = 8.dp)
+            value = email, onValueChange = onEmailChanged, label = { Text("Ingresa tu email") }, modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        var contraseña by remember { mutableStateOf("") }
-
         OutlinedTextField(
-            value = contraseña,
-            onValueChange = { nuevoTexto ->
-                contraseña = nuevoTexto
-            },
+            value = password,
+            onValueChange = onPasswordChanged,
             label = { Text("Ingresa tu contraseña") },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
@@ -182,10 +197,13 @@ fun RegisterForm(modifier: Modifier = Modifier) {
 
 /*Ejercicio 6*/
 @Composable
-fun RoleSelector(modifier: Modifier = Modifier) {
+fun RoleSelector(
+    selectedRole: String,
+    onRoleSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     val roles = listOf("Frontend", "Backend", "Mobile", "Fullstack")
-    var selectedRole by remember { mutableStateOf(roles[0]) }
 
     Column(modifier = modifier) {
         roles.forEach { role ->
@@ -196,7 +214,7 @@ fun RoleSelector(modifier: Modifier = Modifier) {
 
                 ) {
                 RadioButton(
-                    selected = (role == selectedRole), onClick = { selectedRole = role })
+                    selected = (role == selectedRole), onClick = { onRoleSelected(role) })
                 Text(
                     text = role, modifier = Modifier.padding(start = 8.dp)
                 )
@@ -207,9 +225,12 @@ fun RoleSelector(modifier: Modifier = Modifier) {
 
 /*Ejercicio 7*/
 @Composable
-fun TechInterests(modifier: Modifier = Modifier) {
+fun TechInterests(
+    selectedInterests: Set<String>,
+    onInterestChanged: (String, Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val opciones = listOf("Kotlin", "Jetpack Compose", "Corrutinas")
-    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
 
     Column(modifier = modifier) {
         opciones.forEach { opcion ->
@@ -223,13 +244,7 @@ fun TechInterests(modifier: Modifier = Modifier) {
                 Checkbox(
                     checked = isChecked,
                     onCheckedChange = { checked ->
-                        selectedInterests = if (checked) {
-
-                            selectedInterests + opcion
-
-                        } else {
-                            selectedInterests - opcion
-                        }
+                        onInterestChanged(opcion, checked)
                     }
                 )
                 Text(
@@ -286,9 +301,11 @@ fun NotificationSettings(modifier: Modifier = Modifier) {
 /*Ejercicio 9*/
 
 @Composable
-fun ExperienceSlider(modifier: Modifier = Modifier) {
-
-    var sliderPosition by rememberSaveable  { mutableStateOf(0f) }
+fun ExperienceSlider(
+    sliderPosition: Float,
+    onSliderChanged: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     Column(modifier = modifier) {
         Row(
@@ -302,7 +319,7 @@ fun ExperienceSlider(modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold
             )
             Slider(
-                value = sliderPosition, onValueChange = { sliderPosition = it },
+                value = sliderPosition, onValueChange = onSliderChanged,
 
                 valueRange = 0f..10f,
 
@@ -361,7 +378,14 @@ fun SubmitButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Mod
 
 /*Ejercicio 12*/
 @Composable
-fun ProfileSummaryCard(modifier: Modifier = Modifier) {
+fun ProfileSummaryCard(
+    username: String,
+    email: String,
+    role: String,
+    technologies: String,
+    experience: Int,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -380,18 +404,18 @@ fun ProfileSummaryCard(modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                HeaderBanner("Nombre del usuario")
+                HeaderBanner(if (username.isNotEmpty()) username else "Nombre del usuario")
                 Text(
-                    text = "Gmail correo electronico", modifier = Modifier.padding(start = 12.dp)
+                    text = if (email.isNotEmpty()) email else "Gmail correo electronico", modifier = Modifier.padding(start = 12.dp)
                 )
                 Text(
-                    text = "Trabajo", modifier = Modifier.padding(start = 12.dp)
+                    text = if (role.isNotEmpty()) role else "Trabajo", modifier = Modifier.padding(start = 12.dp)
                 )
                 Text(
-                    text = "Tecnologias (lista)", modifier = Modifier.padding(start = 12.dp)
+                    text = if (technologies.isNotEmpty()) "Tecnologías: $technologies" else "Tecnologías (lista)", modifier = Modifier.padding(start = 12.dp)
                 )
                 Text(
-                    text = "Años experiencia ", modifier = Modifier.padding(start = 12.dp, end = 10.dp)
+                    text = "Años experiencia: $experience", modifier = Modifier.padding(start = 12.dp, end = 10.dp)
                 )
             }
         }
@@ -406,3 +430,238 @@ fun ProfileSummaryCardPreview() {
         ProfileSummaryCard(modifier = Modifier.padding(innerPadding))
     }
 }*/
+//Ejercicio 13 y 14
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DevConnectApp(
+    modifier: Modifier = Modifier,
+    onReset: () -> Unit = {},
+    content: @Composable (PaddingValues, SnackbarHostState, CoroutineScope) -> Unit = { _, _, _ -> }
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "DevConnectApp",
+                        fontWeight = FontWeight.Bold,
+                        color = Blue26
+                    )
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showDialog = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refrescar / Limpiar"
+                )
+            }
+        }
+    ) { innerPadding ->
+        content(innerPadding, snackbarHostState, scope)
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text(text = "¿Reiniciar formulario?") },
+                text = { Text(text = "Se perderán todos los datos introducidos.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onReset()
+                            showDialog = false
+                        }
+                    ) {
+                        Text("Sí")
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = { showDialog = false }
+                    ) {
+                        Text("No")
+                    }
+                }
+            )
+        }
+    }
+}
+
+data class DevProfile(
+    val id: Int,
+    val name: String,
+    val role: String,
+    val technologies: String = "",
+    val experience: Int = 0,
+    val avatarUrl: String = ""
+)
+
+val listaDevProfiles = listOf(
+    DevProfile(1, "Ana Gómez", "Frontend Developer", "Kotlin, Compose, React", 3, "https://i.pravatar.cc/150?img=1"),
+    DevProfile(2, "Carlos Pérez", "Backend Developer", "Java, Spring Boot, SQL", 5, "https://i.pravatar.cc/150?img=2"),
+    DevProfile(3, "María López", "Fullstack Developer", "Kotlin, Node.js, TypeScript", 4, "https://i.pravatar.cc/150?img=3"),
+    DevProfile(4, "Luis Martínez", "Android Developer", "Kotlin, Jetpack Compose, Coroutines", 6, "https://i.pravatar.cc/150?img=4"),
+    DevProfile(5, "Elena Rodríguez", "UI/UX Designer", "Figma, Material Design", 2, "https://i.pravatar.cc/150?img=5"),
+    DevProfile(6, "David Sánchez", "DevOps Engineer", "Docker, Kubernetes, AWS", 7, "https://i.pravatar.cc/150?img=6"),
+    DevProfile(7, "Sofía Torres", "iOS Developer", "Swift, SwiftUI", 3, "https://i.pravatar.cc/150?img=7"),
+    DevProfile(8, "Javier Ruiz", "Data Scientist", "Python, Pandas, Machine Learning", 4, "https://i.pravatar.cc/150?img=8"),
+    DevProfile(9, "Lucía Fernández", "QA Engineer", "JUnit, Espresso, Cypress", 3, "https://i.pravatar.cc/150?img=9"),
+    DevProfile(10, "Pedro Gómez", "Backend Developer", "Go, PostgreSQL, Redis", 5, "https://i.pravatar.cc/150?img=10")
+)
+
+@Composable
+fun DevDirectoryScreen(
+    username: String = "",
+    email: String = "",
+    role: String = "",
+    technologies: String = "",
+    experience: Int = 0,
+    modifier: Modifier = Modifier
+) {
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredDevelopers = listaDevProfiles.filter { profile ->
+        profile.name.contains(searchQuery, ignoreCase = true) ||
+        profile.role.contains(searchQuery, ignoreCase = true)
+    }
+
+    LazyColumn(
+        modifier = modifier
+    ) {
+        item {
+            Text(
+                text = "Ejercicio 15 y 17",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
+
+        item {
+            Text(
+                text = "Resumen de tu Perfil",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(10.dp)
+            )
+            ProfileSummaryCard(
+                username = username,
+                email = email,
+                role = role,
+                technologies = technologies,
+                experience = experience
+            )
+
+            Text(
+                text = "Directorio de Desarrolladores",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Buscar por nombre o rol...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                singleLine = true
+            )
+        }
+
+        items(filteredDevelopers) { profile ->
+            var isLiked by rememberSaveable { mutableStateOf(false) }
+            var likesCount by rememberSaveable { mutableStateOf(0) }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = CardColor)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = profile.avatarUrl.ifEmpty { "https://i.pravatar.cc/150" },
+                        contentDescription = "Avatar de ${profile.name}",
+                        placeholder = painterResource(id = R.drawable.ic_launcher_background),
+                        error = painterResource(id = R.drawable.ic_launcher_background),
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = profile.name,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Blue26,
+                            modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+                        )
+                        Text(
+                            text = "Rol: ${profile.role}",
+                            modifier = Modifier.padding(start = 12.dp)
+                        )
+                        if (profile.technologies.isNotEmpty()) {
+                            Text(
+                                text = "Tecnologías: ${profile.technologies}",
+                                modifier = Modifier.padding(start = 12.dp)
+                            )
+                        }
+                        Text(
+                            text = "Años experiencia: ${profile.experience}",
+                            modifier = Modifier.padding(start = 12.dp, end = 10.dp)
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                isLiked = !isLiked
+                                likesCount = if (isLiked) likesCount + 1 else likesCount - 1
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Me gusta",
+                                tint = if (isLiked) Color.Red else Color.Gray
+                            )
+                        }
+
+                        Text(
+                            text = "$likesCount",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
